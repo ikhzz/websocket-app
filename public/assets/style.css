@@ -1,0 +1,33 @@
+/* Global Style */
+body{
+  margin: 0;
+  padding: 0;
+}
+@font-face {
+  font-family: 'Andika New Basic';
+  src: url(./AndikaNewBasic\ /AndikaNewBasic-Regular.ttf);
+}
+* {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  text-decoration: none;
+  font-family: 'Andika New Basic', 'Arial', 'sans-serif';
+}
+a,a:link, a:visited, a:hover, a:active {
+  text-decoration: none;
+  color: white;
+  cursor: pointer;
+}
+button{
+  background-color: rgb(52, 126, 247);
+  border: 1px solid rgb(27, 110, 243);
+  padding: 2px 8px;
+  border-radius: 4px;
+  box-shadow: 0px 0px 1px 2px rgb(95, 154, 248);
+  margin-right: 10px;
+}
+button:hover{
+  background-color: rgb(95, 154, 248);
+}
+ 

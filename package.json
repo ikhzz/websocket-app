@@ -1,0 +1,30 @@
+{
+  "name": "private-pwa-chat",
+  "version": "1.0.0",
+  "description": "#### Chatting app with node, express.js, socket.io and firebase hosting",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ikhzz/websocket-app.git"
+  },
+  "author": "ikhz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ikhzz/websocket-app/issues"
+  },
+  "homepage": "https://github.com/ikhzz/websocket-app#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "moment": "^2.29.1",
+    "socket.io": "^3.1.0",
+    "sqlite": "^4.0.19",
+    "sqlite3": "^4.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  }
+}
