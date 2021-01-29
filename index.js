@@ -1,15 +1,27 @@
-const moment = require("moment"),
-  express = require("express"),
+const express = require("express"),
   socket = require("socket.io"),
   sqlite = require("sqlite3"),
 // open database in progress
-  db = new sqlite.Database("./user.db", (err)=> {
+  db = new sqlite.Database("./user.db", (err, res)=> {
     if(err){
       console.log(err)
     }
-  });
-
-//db.run("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT(30), status TEXT(10), message BLOB()");
+    if(res){
+      console.log(res)
+    }
+  }),
+  // database table setup
+  dbSetup = `CREATE TABLE IF NOT EXISTS users(
+    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+    socketid TEXT(30), 
+    name TEXT(30), 
+    status TEXT(10))`,
+  // database query for all data
+  dbAlldata = `SELECT * FROM users`;
+// run database setup
+db.run(dbSetup, err => {
+  (err != null)? console.log(err) : console.log("Database setup success")
+});
 
 const PORT = process.env.Port || 4000;
 
@@ -22,66 +34,88 @@ const server = app.listen(PORT , ()=> {
 app.use(express.static("public"));
 // connect socket to express server
 const io = socket(server);
-// save all account in memory/array for development purposes
-let socketUser = []
 io.on("connection", socket => {
   // too much log
   console.log(socket.id)
   // listen register user
+  // bad practice should use promise, speed run mode
   socket.on("user", data => {
-    // check the data 
-    const result = checkUser(data, socket.id)
-    // if result is a new data
-    if(result[0] == "newUser"){
-      // send data back to all client
-      socket.emit(result[0], result[1])
-      socket.broadcast.emit(result[0], result[1])
-    } else {
-      // if resutl is not a new data
-      // send the edited data back to the client
-      socket.emit(result[0], result[1])
-      // send the edited data to other client as new id
-      socket.broadcast.emit("newId", result[2])
-    }
+    db.all(`SELECT * FROM users WHERE name='${data}'`, (err, query)=> {
+      (err != null)? console.log(err) : console.log(`All data returned`)
+      // if user with the username exist
+      if(query.length > 0){
+        // update it's current socket id
+        const editUser = `UPDATE users SET socketid='${socket.id}', status='online' WHERE id='${query[0].id}'`;
+        const oldId = query[0].socketid;
+        db.run(editUser, err => {
+          (err != null)? console.log(err) : console.log(`Update user: ${data} success`)
+          db.all(dbAlldata, (err, send) => {
+            // send all user data back to client and new id to other client
+            (err != null)? console.log(err) : console.log(`Sending all data`)
+            socket.emit("login", send)
+            socket.broadcast.emit("newId", [socket.id, oldId])
+          })
+        })
+      } else {
+        // if user with the username doesn't exist
+        const userSetup = `INSERT INTO users 
+        (socketid, name, status) 
+        VALUES
+        ('${socket.id}', '${data}', 'online')`;
+        // insert new user with the name and socket id
+        db.run(userSetup, err => {
+          (err != null)? console.log(err) : console.log(`Insert user: ${data} success`)
+          db.all(dbAlldata, (err, send) => {
+            // send all user data back to all client
+            (err != null)? console.log(err) : console.log(`Sending new user all data`)
+            socket.emit("newUser", send)
+            socket.broadcast.emit("newUser", send)
+          })
+        })
+      }
+    })
+  })
+  // 
+  socket.on("request", res => {
+    const allOnlineUser = `SELECT * FROM users WHERE status='offline'`
+    db.all(allOnlineUser, (err, query) => {
+      (err != null)? console.log(err) : console.log(`Sending new user all data`)
+      socket.emit("resReq", query)
+    })
   })
   // listen to messages
-  socket.on("personal", res => {
+  socket.on("incoming", res => {
     // if id is null message send to all client
     if(res.id == "null"){
-      socket.broadcast.emit("perMsg", {"dest": null, "msg": res.msg, "user": res.user})
+      socket.broadcast.emit("outgoing", {"dest": null, "msg": res.msg, "user": res.user})
     } else {
       // if id is not null send message to the id 
-      socket.broadcast.to(res.id).emit("perMsg", {"dest": socket.id, "msg": res.msg, "user": res.user})
+      socket.broadcast.to(res.id).emit("outgoing", {"dest": socket.id, "msg": res.msg, "user": res.user})
       // too much log
       console.log(`from: ${socket.id},to: ${res.id}, msg: ${res.msg}, user: ${res.user}`)
     }
     
   })
   // listen to disconnect user
+  // bad practice should use promise, speed run mode
   socket.on("disconnect", ()=> {
-    // check user that offline
-    const offlineUser = setOffline(socket.id)
-    // send the user data
-    socket.broadcast.emit("logoff", offlineUser)
+    // query user with the disconnected socket id
+    const userOffline = `SELECT * FROM users WHERE socketid='${socket.id}'`
+    db.all(userOffline, (err, query) => {
+      (err != null)? console.log(err) : console.log(`Request offline user success`)
+      if(query.length > 0){
+        const editOffline = `UPDATE users SET status='offline' WHERE id='${query[0].id}'`;
+        // update user status
+        db.run(editOffline, err=> {
+          (err != null)? console.log(err) : console.log(`Update offline user success`)
+          const offlineUser = `SELECT * FROM users WHERE id='${query[0].id}'`;
+          db.get(offlineUser, (err,res) => {
+            (err != null)? console.log(err) : console.log(`get offline user`)
+            // notify all client about logoff user
+            socket.broadcast.emit("logoff", res)
+          })
+        })
+      }
+    })
   })
 })
-// function to set the data to offline
-const setOffline = (id) => {
-  const index = socketUser.findIndex((obj => obj.id == id))
-  socketUser[index].status = "offline"
-  return socketUser[index]
-}
-// function to add or edit data
-const checkUser = (name, id) => {
-  const index = socketUser.findIndex((obj => obj.name == name))
-  if(index == -1){
-    const user = {"id": id, "name": name, "status": "online"} 
-    socketUser.push(user)
-    return ["newUser" ,socketUser]
-  } else {
-    const oldId = socketUser[index].id
-    socketUser[index].id = id
-    socketUser[index].status = "online"
-    return ["login" ,socketUser, [socketUser[index].id, oldId]]
-  }
-}

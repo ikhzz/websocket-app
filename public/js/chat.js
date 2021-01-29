@@ -1,5 +1,6 @@
 // get all method from custom element
 const appMain = document.querySelector("app-main");
+let isConnected = false;
 
 class Chats {
   // initial property 
@@ -9,21 +10,18 @@ class Chats {
   // create connection
   connect = () => this._socket = io.connect("http://localhost:4000");
   // disconnect connection
-  disconnect = () => this._socket.disconnect();
+  disconnect = () => {
+    this._socket.disconnect();
+    isConnected = false
+  }
   // method to send message
   sendMessage = (dest, msg) => this._socket.emit(dest, msg);
-  // was listener to general message
-  listenMessage = () =>{
-    this._socket.on("loginNotif", res => {
-      appMain.setGeneralmessage(res)
-    })
-  }
   // listen to user setting
   listenUser = () => {
     // listen to user
     this._socket.on("newUser", res => {
       // filter the current user
-      const fil = res.filter(rlt => rlt.id != this._socket.id)
+      const fil = res.filter(rlt => rlt.socketid != this._socket.id)
       // if the user only 1 set the data
       if(fil.length == 1){
         appMain.addUserlist(fil)
@@ -39,15 +37,21 @@ class Chats {
     // listen to login
     this._socket.on("login", res => {
       // filter the current user
-      const fil = res.filter(rlt => rlt.id != this._socket.id)
+      const fil = res.filter(rlt => rlt.socketid != this._socket.id)
+      console.log(fil)
       // save the data and set it
       this._currentUser = fil
       appMain.addUserlist(fil)
     })
-    // set the edited data 
+    // listen and set the edited data
     this._socket.on("newId", res => {
       appMain.setNewid(res)
     })
+    // listen and set offline user
+    this._socket.on("logoff", res=> {
+      appMain.setOffline(res)
+    })
+
   }
   // supposedly to listen if user has registered or not and many more
   getUser = (name) => {
@@ -57,14 +61,26 @@ class Chats {
     this.listenUser()
     this.listenChat()
     appMain.setUsername(name)
+    isConnected = true
   }
   // method to set listener for chat message
   listenChat = () => {
-    this._socket.on("perMsg", res => {
+    this._socket.on("outgoing", res => {
       console.log(res)
-      appMain.setPersonalchat(res)
+      appMain.outgoingMessage(res)
     })
   }
+  // 
+  getAllUser = () => {
+    this.connect()
+    this._socket.emit("request", "request all user")
+    this._socket.on("resReq", res => {
+      console.log(res)
+      this._socket.disconnect()
+    })
+    
+  }
+  // 
   // method to compare new or edited user
   compareObject = (objOne) => {
     let result = []
@@ -84,4 +100,4 @@ class Chats {
   }
 }
 
-export {Chats}
+export {Chats, isConnected}

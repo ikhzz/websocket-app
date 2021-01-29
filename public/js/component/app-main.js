@@ -6,7 +6,6 @@ import "./app-loginMenu.js";
 import {Chats} from "../chat.js"
 // set chats class and connection state
 const socket = new Chats;
-let isConnected = false;
 // custom element parent root and and setup
 class AppMain extends HTMLElement{
   constructor(){
@@ -23,11 +22,13 @@ class AppMain extends HTMLElement{
   registerPage(){
     const register = document.createElement("app-register-menu");
     this.shadowRoot.replaceChild(register, this.shadowRoot.lastChild);
+    this.listenerRegpage()
   }
   // method to switch login menu page
   loginPage(){
     const menu = document.createElement("app-login-menu");
     this.shadowRoot.replaceChild(menu, this.shadowRoot.lastChild);
+    socket.getAllUser()
   };
   // method to set username
   setUsername(name){
@@ -42,8 +43,8 @@ class AppMain extends HTMLElement{
       userMap = `
     ${users.map(user => `
     <li>
-        <div class="${user.status}"></div>
-        <p data-id="${user.id}">${user.name}</p>
+        <div data-id="${user.socketid}" class="${user.status}"></div>
+        <p >${user.name}</p>
       </li>
     `).join('')}`;
 
@@ -56,13 +57,11 @@ class AppMain extends HTMLElement{
     .shadowRoot.querySelector(".messageContent"),
     userMap = `
       ${users.map(user => `
-      <ul data-id="${user.id}" data-user="${user.name}">
+      <ul data-id="${user.socketid}" data-user="${user.name}">
         <li>
           <p>Room : ${user.name}</p>
         </li>
-      <li class="message">
-
-      </li>
+      <li class="message"></li>
       <li class="messageInput" >
         <textarea></textarea>
         <button>Send</button>
@@ -70,11 +69,11 @@ class AppMain extends HTMLElement{
     </ul>
       `).join('')}`;
     list.innerHTML += userMap;
-    this.listenSwitch()
-    this.setListensend()
+    this.switchRoom()
+    this.incomingMessage()
   }
   // method to switch room
-  listenSwitch(){
+  switchRoom(){
     const list = this.shadowRoot.querySelector("app-content")
         .shadowRoot.querySelectorAll(".userList li"),
       roomList = this.shadowRoot.querySelector("app-content")
@@ -95,16 +94,7 @@ class AppMain extends HTMLElement{
       })
     })
   }
-  // 
-  setGeneralmessage(msg){
-    const message = this.shadowRoot.querySelector("app-content")
-      .shadowRoot.querySelector(".message");
-    const p = document.createElement('p')
-    p.innerHTML = `${msg}
-    `;
-    message.appendChild(p)
-  }
-  setPersonalchat(msg){
+  outgoingMessage(msg){
     const message = this.shadowRoot.querySelector("app-content")
       .shadowRoot.querySelector(`.messageContent [data-id='${msg.dest}'] .message`);
       const away = document.createElement('away')
@@ -112,7 +102,7 @@ class AppMain extends HTMLElement{
     away.innerHTML = `${msg.user}: ${msg.msg}`
     message.appendChild(away)
   }
-  setSendchat(id, msg){
+  setYourmessage(id, msg){
     const message = this.shadowRoot.querySelector("app-content")
       .shadowRoot.querySelector(`.messageContent [data-id='${id}'] .message`);
       const home = document.createElement('home')
@@ -120,7 +110,7 @@ class AppMain extends HTMLElement{
     home.innerHTML = `You: ${msg}`
     message.appendChild(home)
   }
-  setListensend(){
+  incomingMessage(){
     const send = this.shadowRoot.querySelector("app-content")
         .shadowRoot.querySelectorAll(".messageInput button"),
       input = this.shadowRoot.querySelector("app-content")
@@ -129,15 +119,20 @@ class AppMain extends HTMLElement{
         .shadowRoot.querySelectorAll(".messageContent > ul"),
       userName = this.shadowRoot.querySelector("app-content")
         .shadowRoot.querySelector(".userContent")
-        .getAttribute("data-user")
-
+        .getAttribute("data-user"),
+      userStatus = this.shadowRoot.querySelector("app-content")
+      .shadowRoot.querySelector(".userContent")
+    
     send.forEach((e,i) => {
       e.addEventListener("click", ()=> {
-        if(input[i].value.length > 0){
-          const id = node[i].getAttribute("data-id")
-          this.setSendchat(id, input[i].value)
-          console.log(userName)
-          socket.sendMessage("personal", {"id": id, "msg": input[i].value, "user": userName})
+        const id = node[i].getAttribute("data-id")
+        const status = userStatus.querySelector(`[data-id='${id}']`)
+        if(status == null || status.classList.value == "online" && input[i].value.length > 0){
+          this.setYourmessage(id, input[i].value)
+          socket.sendMessage("incoming", {"id": id, "msg": input[i].value, "user": userName})
+          input[i].value = ""
+        } else {
+          this.setYourmessage(id, "Send message failed, user is offline")
           input[i].value = ""
         }
       })
@@ -146,11 +141,20 @@ class AppMain extends HTMLElement{
   // method to set new id
   setNewid(id){
     let dataid = this.shadowRoot.querySelector("app-content")
-      .shadowRoot.querySelector(`.messageContent [data-id='${id[1]}']`);
+        .shadowRoot.querySelector(`.messageContent [data-id='${id[1]}']`),
+      statusid = this.shadowRoot.querySelector("app-content")
+        .shadowRoot.querySelector(`.userList [data-id='${id[1]}']`);
+    statusid.setAttribute("data-id", id[0])
+    statusid.classList = "online"
     dataid.setAttribute("data-id", id[0])
   }
+  setOffline(user){
+    let dataid = this.shadowRoot.querySelector("app-content")
+      .shadowRoot.querySelector(`.userList [data-id='${user.socketid}']`);
+    dataid.classList = user.status
+  }
   // method set listener to register page
-  setListener(){
+  listenerRegpage(){
     const register = this.shadowRoot.querySelector("app-register-menu").shadowRoot.querySelector('.a');
     const input = this.shadowRoot.querySelector("app-register-menu").shadowRoot.querySelector('input')
     register.addEventListener("click", ()=> {
@@ -159,10 +163,17 @@ class AppMain extends HTMLElement{
       }
     })
   }
+  // method set listener to login page
+  listenerLoginpage(){
+
+  }
+  // 
+  setLoginUser(res){
+
+  }
   // method to disconnect socket connection
   disconnect(){
     socket.disconnect();
-    isConnected = false;
   }
   // method to render element
   render(){
@@ -198,4 +209,3 @@ class AppMain extends HTMLElement{
 }
 
 customElements.define("app-main", AppMain);
-export {isConnected};

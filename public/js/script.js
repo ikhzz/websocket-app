@@ -1,7 +1,8 @@
 // import the necessary component
 import "./component/app-main.js"
 import "./component/app-content.js"
-// set the necesarry variable
+import {isConnected} from "./chat.js"
+// set the necessary variable
 const appMain =  document.querySelector("app-main"),
   appHeader = appMain.shadowRoot.querySelector("app-header"),
   login = appHeader.shadowRoot.querySelector(".login"),
@@ -9,16 +10,17 @@ const appMain =  document.querySelector("app-main"),
 
 // set the initial listener
 if(appMain.shadowRoot.querySelector("app-register-menu").shadowRoot.querySelector(".a")){
-  appMain.setListener();
+  appMain.listenerRegpage();
 }
 // listener to switch login page and set the listener for login
 login.addEventListener("click", ()=> {
   appMain.loginPage();
+  if(isConnected == true) appMain.disconnect()
 })
 // listener to switch register page and set the listener for register
 register.addEventListener("click", ()=> {
   appMain.registerPage();
-  appMain.setListener();
+  if(isConnected == true) appMain.disconnect()
 })
 
 //appMain.testing()

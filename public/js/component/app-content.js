@@ -85,6 +85,9 @@ class AppContent extends HTMLElement{
         border-radius: 50%;
         border: 2px solid white;
       }
+      .userList div.online{
+        background-color: blue
+      }
       .messageContent li{
         background-color: #008891;
       }
