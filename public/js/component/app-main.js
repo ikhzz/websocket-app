@@ -129,7 +129,7 @@ class AppMain extends HTMLElement{
         const status = userStatus.querySelector(`[data-id='${id}']`)
         if(status == null || status.classList.value == "online" && input[i].value.length > 0){
           this.setYourmessage(id, input[i].value)
-          socket.sendMessage("incoming", {"id": id, "msg": input[i].value, "user": userName})
+          socket.ioEmit("incoming", {"id": id, "msg": input[i].value, "user": userName})
           input[i].value = ""
         } else {
           this.setYourmessage(id, "Send message failed, user is offline")
@@ -159,17 +159,29 @@ class AppMain extends HTMLElement{
     const input = this.shadowRoot.querySelector("app-register-menu").shadowRoot.querySelector('input')
     register.addEventListener("click", ()=> {
       if(input.value.length > 0){
-        socket.getUser(input.value)
+        socket.checkUser(input.value)
       }
     })
   }
   // method set listener to login page
-  listenerLoginpage(){
-
+  listenerLogin(){
+    const loginMenu = this.shadowRoot.querySelector("app-login-menu").shadowRoot.querySelectorAll('.content > li')
+    loginMenu.forEach((e,i) => {
+      e.addEventListener("click", ()=> {
+        const username = loginMenu[i].getAttribute("data-id")
+        socket.setUser("login" ,username)
+      })
+    })
   }
   // 
   setLoginUser(res){
-
+    const loginMenu = this.shadowRoot.querySelector("app-login-menu").shadowRoot.querySelector('.content'),
+    userMap = `
+    ${res.map(user => `
+    <li data-id="${user.name}"><p>Username: ${user.name}</p></li>
+    `).join('')}`;
+    loginMenu.innerHTML += userMap
+    this.listenerLogin()
   }
   // method to disconnect socket connection
   disconnect(){
@@ -199,7 +211,7 @@ class AppMain extends HTMLElement{
     `;
     const header = document.createElement("app-header"),
       menu = document.createElement("app-register-menu");
-    const testcontent = document.createElement("app-content")
+    const testcontent = document.createElement("app-login-menu")
     this.shadowRoot.appendChild(header)
     this.shadowRoot.appendChild(menu)
   }

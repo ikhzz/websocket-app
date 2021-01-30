@@ -14,8 +14,8 @@ if(appMain.shadowRoot.querySelector("app-register-menu").shadowRoot.querySelecto
 }
 // listener to switch login page and set the listener for login
 login.addEventListener("click", ()=> {
-  appMain.loginPage();
   if(isConnected == true) appMain.disconnect()
+  appMain.loginPage();
 })
 // listener to switch register page and set the listener for register
 register.addEventListener("click", ()=> {

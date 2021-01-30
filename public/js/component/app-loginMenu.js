@@ -8,9 +8,19 @@ class LoginMenu extends HTMLElement{
   render(){
     this.shadowRoot.innerHTML = `
     <style>
+    * {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      text-decoration: none;
+      font-family: 'Andika New Basic', 'Arial', 'sans-serif';
+      word-wrap: break-word;
+    }
     .content{
       display: grid;
-      place-content: center;
+      justify-content: center;
+      grid-template-rows: repeat(auto-fill, minmax(40px, auto));
+      overflow-y: scroll;
       width: 75%;
       height: 600px;
       border: 1px solid black;
@@ -18,12 +28,17 @@ class LoginMenu extends HTMLElement{
       row-gap: 10px;
       background-color: #e7e7de;
     }
+    .content li {
+      border: 1px solid black;
+      background-color: white;
+      padding: 4px 8px;
+      max-width: 270px;
+      border-radius: 5px;
+    }
     </style>
-    <div class="content">
-      <p>Login</p>
-      <input type="text">
-      <button class="b">Login</button>
-    </div>
+    <ul class="content">
+    <p>User list :</p>
+    </ul>
     `;
   }
 }

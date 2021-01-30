@@ -15,7 +15,7 @@ class Chats {
     isConnected = false
   }
   // method to send message
-  sendMessage = (dest, msg) => this._socket.emit(dest, msg);
+  ioEmit = (dest, msg) => this._socket.emit(dest, msg);
   // listen to user setting
   listenUser = () => {
     // listen to user
@@ -23,9 +23,10 @@ class Chats {
       // filter the current user
       const fil = res.filter(rlt => rlt.socketid != this._socket.id)
       // if the user only 1 set the data
+      console.log(fil)
       if(fil.length == 1){
         appMain.addUserlist(fil)
-        this._currentUser = fil
+        this._currentUser = fil  
       }
       // if user is more than one
       if(fil.length > 1){
@@ -35,10 +36,9 @@ class Chats {
       }
     })
     // listen to login
-    this._socket.on("login", res => {
+    this._socket.on("userLogin", res => {
       // filter the current user
       const fil = res.filter(rlt => rlt.socketid != this._socket.id)
-      console.log(fil)
       // save the data and set it
       this._currentUser = fil
       appMain.addUserlist(fil)
@@ -51,48 +51,55 @@ class Chats {
     this._socket.on("logoff", res=> {
       appMain.setOffline(res)
     })
-
   }
-  // supposedly to listen if user has registered or not and many more
-  getUser = (name) => {
+  // method to login or register user
+  setUser = (type, name) => {
     this.connect();
     appMain.loggedIn()
-    this.sendMessage("user", name)
+    this.ioEmit(type, name)
     this.listenUser()
     this.listenChat()
     appMain.setUsername(name)
     isConnected = true
   }
+  // method to check registered user
+  checkUser = (name) => {
+    this.connect();
+    this.ioEmit("requestCheck", name)
+    this._socket.on("resCheck", res=> {
+      this._socket.disconnect()
+      if(res === true){
+        this.setUser("register", name)
+        this._currentUser = []
+      } else {
+        // set shitty snackbar
+      }
+    })
+  }
   // method to set listener for chat message
   listenChat = () => {
     this._socket.on("outgoing", res => {
-      console.log(res)
       appMain.outgoingMessage(res)
     })
   }
-  // 
+  // method to get all user for login menu 
   getAllUser = () => {
     this.connect()
-    this._socket.emit("request", "request all user")
+    this.ioEmit("requestLogin", "request all user")
     this._socket.on("resReq", res => {
-      console.log(res)
+      if(res.length > 0) appMain.setLoginUser(res)
       this._socket.disconnect()
     })
-    
   }
-  // 
   // method to compare new or edited user
   compareObject = (objOne) => {
-    let result = []
+    let result = objOne
     if(this._currentUser.length <= 0){
       result = objOne
     } else {
       this._currentUser.forEach(e => {
-        const index = objOne.findIndex((res => res.name != e.name)) 
-        console.log(index)
-        if(index != -1){
-          result.push(objOne[index])
-        }
+        // nah filter is the better one
+        result = result.filter(res => res.name != e.name)
       })
     }
     this._currentUser = objOne
