@@ -37,11 +37,22 @@ class Chats {
     })
     // listen to login
     this._socket.on("userLogin", res => {
-      // filter the current user
-      const fil = res.filter(rlt => rlt.socketid != this._socket.id)
-      // save the data and set it
-      this._currentUser = fil
-      appMain.addUserlist(fil)
+      // double check if user haven't logged in
+      if(res[0] === true){
+        // filter the current user
+        const fil = res[1].filter(rlt => rlt.socketid != this._socket.id)
+        // save the data and set it
+        this._currentUser = fil
+        appMain.addUserlist(fil)
+      // if user is logged in set snackbar, disconnect and send user back to login page
+      } else {
+        const nyamNyam = document.querySelector(".snackbar")
+        nyamNyam.innerHTML = `User is logged on, please refresh page`;
+        nyamNyam.classList.toggle("snackActive")
+        setTimeout(()=>nyamNyam.classList.toggle("snackActive"), 2000)
+        this.disconnect()
+        appMain.loginPage()
+      }
     })
     // listen and set the edited data
     this._socket.on("newId", res => {
@@ -73,6 +84,10 @@ class Chats {
         this._currentUser = []
       } else {
         // set shitty snackbar
+        const nyamNyam = document.querySelector(".snackbar")
+        nyamNyam.innerHTML = `User: ${name} is already registered`;
+        nyamNyam.classList.toggle("snackActive")
+        setTimeout(()=>nyamNyam.classList.toggle("snackActive"), 2000)
       }
     })
   }

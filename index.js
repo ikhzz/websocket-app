@@ -39,19 +39,24 @@ io.on("connection", socket => {
   // listen login user
   // bad practice should use promise, speed run mode
   socket.on("login", data => {
-    db.get(`SELECT * FROM users WHERE name='${data}'`, (err, query)=> {
+    db.get(`SELECT * FROM users WHERE name='${data}' AND status='offline'`, (err, query)=> {
       (err != null)? console.log(err) : console.log(`Get login user`)
-      const editUser = `UPDATE users SET socketid='${socket.id}', status='online' WHERE id='${query.id}'`,
+      // double check if user haven't logged in
+      if(query === undefined){
+        socket.emit("userLogin", [false, "user loggedin"])
+      } else {
+        const editUser = `UPDATE users SET socketid='${socket.id}', status='online' WHERE id='${query.id}'`,
         oldId = query.socketid;
-      db.run(editUser, err => {
-        (err != null)? console.log(err) : console.log(`Set login user: ${data} success`)
-        db.all(dbAlldata, (err, send) => {
-          // send all user data back to client and new id to other client
-          (err != null)? console.log(err) : console.log(`Sending all data`)
-          socket.emit("userLogin", send)
-          socket.broadcast.emit("newId", [socket.id, oldId])
+        db.run(editUser, err => {
+          (err != null)? console.log(err) : console.log(`Set login user: ${data} success`)
+          db.all(dbAlldata, (err, send) => {
+            // send all user data back to client and new id to other client
+            (err != null)? console.log(err) : console.log(`Sending all data`)
+            socket.emit("userLogin", [true, send])
+            socket.broadcast.emit("newId", [socket.id, oldId])
+          })
         })
-      })
+      }
     })
   })
   // listen register user
